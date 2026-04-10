@@ -9,15 +9,17 @@ from models import db, Author, Book
 load_dotenv()
 
 
-def create_app():
-    sentry_sdk.init(
-        dsn=os.environ.get("SENTRY_DSN", ""),
-        traces_sample_rate=1.0,
-        profiles_sample_rate=1.0,
-    )
+def create_app(database_uri=None, enable_sentry=True):
+    if enable_sentry:
+        sentry_sdk.init(
+            dsn=os.environ.get("SENTRY_DSN", ""),
+            traces_sample_rate=1.0,
+            profiles_sample_rate=1.0,
+        )
 
     app = Flask(__name__)
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///library.db"
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_uri or "sqlite:///library.db"
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app)
 
     @app.get("/api/authors")
@@ -80,7 +82,7 @@ def create_app():
             "avg_books_per_author": round(avg_books, 1),
             "oldest_book": oldest_book.title,
             "oldest_year": oldest_book.year,
-            "oldest_author": oldest_book.author.full_name,
+            "oldest_author": oldest_book.author.name,
         })
 
     @app.get("/debug-sentry")
