@@ -39,6 +39,16 @@ def create_app():
             })
         return jsonify(result)
 
+    @app.get("/api/authors/<int:author_id>")
+    def get_author(author_id):
+        author = db.session.get(Author, author_id)
+        data = author.to_dict()
+        return jsonify(data)
+
+    @app.get("/debug-sentry")
+    def trigger_error():
+        division_by_zero = 1 / 0
+
     @app.get("/health")
     def health():
         return jsonify({"status": "ok"})
