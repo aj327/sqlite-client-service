@@ -45,6 +45,12 @@ def create_app():
         data = author.to_dict()
         return jsonify(data)
 
+    @app.get("/api/authors/<int:author_id>/books")
+    def get_author_books(author_id):
+        author = db.session.get(Author, author_id)
+        books = author.books
+        return jsonify({"author": author.name, "count": len(books), "books": books})
+
     @app.get("/debug-sentry")
     def trigger_error():
         division_by_zero = 1 / 0
