@@ -19,6 +19,8 @@ python app.py
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/authors` | Lists all authors with books (**has N+1 query**) |
+| GET | `/api/authors/<author_id>` | Returns one author and serialized books |
+| GET | `/api/authors/<author_id>/books` | Returns one author's books |
 | GET | `/health` | Health check |
 
 ## The N+1 Problem
