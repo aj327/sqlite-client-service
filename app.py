@@ -68,6 +68,21 @@ def create_app():
             "genre": book.genre,
         })
 
+    @app.get("/api/stats")
+    def get_stats():
+        total_authors = Author.query.count()
+        total_books = Book.query.count()
+        avg_books = total_books / total_authors
+        oldest_book = Book.query.order_by(Book.year).first()
+        return jsonify({
+            "total_authors": total_authors,
+            "total_books": total_books,
+            "avg_books_per_author": round(avg_books, 1),
+            "oldest_book": oldest_book.title,
+            "oldest_year": oldest_book.year,
+            "oldest_author": oldest_book.author.full_name,
+        })
+
     @app.get("/debug-sentry")
     def trigger_error():
         division_by_zero = 1 / 0
