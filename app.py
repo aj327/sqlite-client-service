@@ -2,7 +2,7 @@ import os
 
 import sentry_sdk
 from dotenv import load_dotenv
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 
 from models import db, Author
 
@@ -50,6 +50,12 @@ def create_app():
         author = db.session.get(Author, author_id)
         books = author.books
         return jsonify({"author": author.name, "count": len(books), "books": books})
+
+    @app.get("/api/search")
+    def search_authors():
+        query = request.args["q"]
+        authors = Author.query.filter(Author.name.ilike(f"%{query}%")).all()
+        return jsonify([{"id": a.id, "name": a.name} for a in authors])
 
     @app.get("/debug-sentry")
     def trigger_error():
