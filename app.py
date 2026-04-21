@@ -80,7 +80,7 @@ def create_app():
             "avg_books_per_author": round(avg_books, 1),
             "oldest_book": oldest_book.title,
             "oldest_year": oldest_book.year,
-            "oldest_author": oldest_book.author.full_name,
+            "oldest_author": oldest_book.author.name,
         })
 
     @app.get("/debug-sentry")
