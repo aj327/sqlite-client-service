@@ -9,15 +9,16 @@ from models import db, Author, Book
 load_dotenv()
 
 
-def create_app():
-    sentry_sdk.init(
-        dsn=os.environ.get("SENTRY_DSN", ""),
-        traces_sample_rate=1.0,
-        profiles_sample_rate=1.0,
-    )
+def create_app(database_uri="sqlite:///library.db", enable_sentry=True):
+    if enable_sentry:
+        sentry_sdk.init(
+            dsn=os.environ.get("SENTRY_DSN", ""),
+            traces_sample_rate=1.0,
+            profiles_sample_rate=1.0,
+        )
 
     app = Flask(__name__)
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///library.db"
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_uri
     db.init_app(app)
 
     @app.get("/api/authors")
@@ -41,7 +42,7 @@ def create_app():
 
     @app.get("/api/authors/<int:author_id>")
     def get_author(author_id):
-        author = db.session.get(Author, author_id)
+        author = Author.query.get_or_404(author_id)
         data = author.to_dict()
         return jsonify(data)
 
