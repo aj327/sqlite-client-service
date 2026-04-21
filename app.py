@@ -1,8 +1,11 @@
+import csv
 import os
+from io import StringIO
 
 import sentry_sdk
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, request
+from sqlalchemy import text
 
 from models import db, Author, Book
 
@@ -56,6 +59,61 @@ def create_app():
         query = request.args["q"]
         authors = Author.query.filter(Author.name.ilike(f"%{query}%")).all()
         return jsonify([{"id": a.id, "name": a.name} for a in authors])
+
+    @app.get("/api/export/authors")
+    def export_authors():
+        query = request.args.get("q", "").strip()
+        sort = request.args.get("sort", "name").strip().lower()
+        export_format = request.args.get("format", "json").strip().lower()
+        limit_arg = request.args.get("limit", "50").strip()
+
+        allowed_sorts = {"id": "id", "name": "name"}
+        allowed_formats = {"csv", "json"}
+
+        if sort not in allowed_sorts:
+            return jsonify({"error": "sort must be one of: id, name"}), 400
+        if export_format not in allowed_formats:
+            return jsonify({"error": "format must be one of: csv, json"}), 400
+
+        try:
+            limit = int(limit_arg)
+        except ValueError:
+            return jsonify({"error": "limit must be an integer"}), 400
+
+        limit = max(1, min(limit, 100))
+
+        # Keep free-text input parameterized and only interpolate allowlisted columns.
+        stmt = text(
+            f"""
+            SELECT id, name, bio
+            FROM authors
+            WHERE lower(name) LIKE lower(:query)
+            ORDER BY {allowed_sorts[sort]}
+            LIMIT :limit
+            """
+        )
+        rows = db.session.execute(
+            stmt,
+            {"query": f"%{query}%", "limit": limit},
+        ).mappings()
+
+        authors = [
+            {"id": row["id"], "name": row["name"], "bio": row["bio"]}
+            for row in rows
+        ]
+
+        if export_format == "csv":
+            buffer = StringIO()
+            writer = csv.DictWriter(buffer, fieldnames=["id", "name", "bio"])
+            writer.writeheader()
+            writer.writerows(authors)
+            return Response(
+                buffer.getvalue(),
+                mimetype="text/csv",
+                headers={"Content-Disposition": "attachment; filename=authors.csv"},
+            )
+
+        return jsonify({"count": len(authors), "authors": authors})
 
     @app.get("/api/books/<int:book_id>")
     def get_book(book_id):
