@@ -12,6 +12,13 @@ class Author(db.Model):
 
     books = db.relationship("Book", back_populates="author", lazy="select")
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "bio": self.bio,
+        }
+
 
 class Book(db.Model):
     __tablename__ = "books"
@@ -22,3 +29,11 @@ class Book(db.Model):
     author_id = db.Column(db.Integer, db.ForeignKey("authors.id"), nullable=False)
 
     author = db.relationship("Author", back_populates="books")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "year": self.year,
+            "author_id": self.author_id,
+        }
