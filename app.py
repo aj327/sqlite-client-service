@@ -3,6 +3,7 @@ import os
 import sentry_sdk
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
+from sqlalchemy import text
 
 from models import db, Author, Book
 
@@ -56,6 +57,18 @@ def create_app():
         query = request.args["q"]
         authors = Author.query.filter(Author.name.ilike(f"%{query}%")).all()
         return jsonify([{"id": a.id, "name": a.name} for a in authors])
+
+    @app.get("/api/demo/unsafe-search")
+    def demo_unsafe_search():
+        """Isolated demo endpoint: intentionally vulnerable SQL injection for security-review testing.
+
+        Do not reuse this pattern in real applications.
+        """
+        q = request.args.get("q", "")
+        # VULN: user input interpolated into SQL (CWE-89).
+        sql = f"SELECT id, name, bio FROM authors WHERE name LIKE '%{q}%'"
+        rows = db.session.execute(text(sql)).mappings()
+        return jsonify({"authors": [dict(r) for r in rows]})
 
     @app.get("/api/books/<int:book_id>")
     def get_book(book_id):
